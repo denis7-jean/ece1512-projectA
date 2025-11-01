@@ -45,3 +45,42 @@ Mamba can be interpreted as:
 - A **convolutional model** for training (parallel and stable).  
 
 This dual interpretation allows it to retain the best of both worlds — *speed* and *context length* — positioning it as a promising alternative to attention-based architectures for very long sequences.
+
+## 4. Limitations & Opportunities for Improvement
+
+Although Mamba achieves remarkable efficiency and scalability, it still faces several **limitations** that open up opportunities for future improvements.
+
+### 1. Expressivity vs. Efficiency Trade-off  
+While Mamba avoids quadratic attention, it sometimes struggles to capture **fine-grained dependencies** in very complex sequences, particularly when important information is spread across distant positions.  
+This limitation arises from its *implicit compression* and *selective skipping*, which may discard subtle contextual cues.
+
+### 2. Uniform Temporal Resolution  
+Mamba processes all tokens at a fixed temporal granularity.  
+However, real-world signals (such as video frames or speech) exhibit **multi-scale temporal structures** —  
+some regions evolve slowly (requiring coarse attention), while others change rapidly (requiring fine attention).  
+A **multi-resolution selective mechanism** could better balance long-range context and local detail.
+
+### 3. Heavy Convolutional Kernels  
+Training Mamba involves long 1D convolutions whose kernels can become extremely large,  
+leading to **memory inefficiency** and **expensive parameter storage** during deployment.  
+Compressing or distilling these kernels after training could significantly reduce FLOPs and memory cost.
+
+### 4. Limited Adaptation to Heterogeneous Modalities  
+While Mamba has shown success in language and vision,  
+its architecture is not yet optimized for **multi-modal** signals (e.g., text + video, audio + sensor data).  
+Introducing modality-aware scanning or dynamic parameter routing could further generalize its performance.
+
+---
+
+In the next section, we propose **two targeted extensions** to address these limitations:
+
+1. **Extension A – Multi-Resolution Selective Scanning:**  
+   Introduce hierarchical time-scales so that long-range, low-frequency signals are processed at reduced resolution,  
+   while short-range, high-frequency components are handled at full detail.
+
+2. **Extension B – Selective Kernel Distillation:**  
+   Apply low-rank or structured re-parameterization to compress long convolution kernels,  
+   maintaining accuracy while reducing inference cost.
+
+These extensions aim to improve both **representation quality** and **deployment efficiency** —  
+aligning with the ultimate goal of building a *truly scalable and hardware-friendly sequence model*.
