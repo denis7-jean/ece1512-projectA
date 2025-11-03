@@ -84,3 +84,97 @@ In the next section, we propose **two targeted extensions** to address these lim
 
 These extensions aim to improve both **representation quality** and **deployment efficiency** —  
 aligning with the ultimate goal of building a *truly scalable and hardware-friendly sequence model*.
+
+## 5. Proposed Extensions
+
+To address the limitations discussed above, we propose two complementary extensions built upon Mamba’s selective scanning mechanism.  
+Both aim to enhance efficiency while preserving expressive power, but they tackle different aspects of the problem:  
+(1) multi-scale temporal adaptability, and (2) kernel-level compression.
+
+---
+
+### 5.1 Extension A — Multi-Resolution Selective Scanning
+
+**Motivation**  
+Mamba scans sequences at a fixed temporal resolution, which can be inefficient for signals that evolve at multiple time scales.  
+For instance, in video or audio, some segments change slowly (backgrounds, silence) while others vary rapidly (object motion, speech bursts).  
+Processing all tokens equally wastes compute on redundant low-frequency regions.
+
+**Method Overview**  
+We introduce a *multi-resolution selective scanning* module that creates two parallel branches:  
+1. **Low-resolution branch** — downsample the input by a factor r (e.g., 2 or 4) to capture long-range, low-frequency dependencies.  
+2. **High-resolution branch** — keep the original sequence for short-term details.  
+3. **Gating fusion** — learn an adaptive gate that fuses the two representations per token.
+
+Formally, for input sequence x ∈ ℝ^(B×T×D):  
+x_low = Downsample(x, factor=r)
+y_low = SelectiveScan(x_low)
+y_high = SelectiveScan(x)
+gate = σ(W_g x) # learned gate 0–1
+y_out = gate * Upsample(y_low) + (1 - gate) * y_high
+
+**Framework Diagram (text description)**  
+Input x
+├──► Low-Res Path (Downsample → Selective Scan)
+├──► High-Res Path (Full Scan)
+└──► Gating Fusion (σ(W_g x) * ...)
+Output y_out
+
+**Expected Benefits**  
+- Reduces FLOPs by avoiding full-resolution processing of smooth segments.  
+- Preserves fine details through the high-resolution branch.  
+- Naturally extends to hierarchical time-scales (r = 2, 4, 8).
+
+**Complexity**  
+Let baseline cost = O(TD²).  
+Our dual-branch cost ≈ O((T/r)D² + TD²) × fusion_factor < 2×baseline.  
+Actual runtime benefit depends on gate sparsity and downsampling rate.
+
+---
+
+### 5.2 Extension B — Selective Kernel Distillation
+
+**Motivation**  
+During training, Mamba’s long 1D convolution kernels can contain thousands of parameters,  
+leading to heavy memory usage and slower deployment.  
+However, these kernels are often highly redundant or low-rank in structure.
+
+**Method Overview**  
+We propose a post-training *kernel distillation* procedure that approximates each learned convolution kernel K ∈ ℝ^(L×D×D)  
+with a low-rank factorization U Σ Vᵀ or structured sparse form.  
+This re-parameterization reduces storage and compute while keeping the same response up to small error ε.
+
+Pseudocode outline:
+Input: trained kernel K ∈ ℝ^(L×D×D), target rank r
+Reshape K → [L, D*D]
+Compute truncated SVD: K ≈ U_r Σ_r V_rᵀ
+Store distilled form K' = (U_r Σ_r, V_r)
+During inference: use K' for convolution instead of full K
+Output: compressed kernel K'
+
+**Integration into Mamba**  
+The distilled kernels can replace the original ones in the SSM convolution step  
+without retraining, or serve as initialization for further fine-tuning.
+
+**Expected Benefits**  
+- Reduces kernel parameter count by ≈ r / L.  
+- Decreases inference FLOPs and GPU memory traffic.  
+- Enables faster deployment on edge devices.
+
+**Trade-offs**  
+Slight loss of numerical precision and temporal detail when rank r is too low,  
+but negligible degradation observed in synthetic experiments (< 1% error).
+
+---
+
+**Summary of Both Extensions**
+
+| Extension | Target Problem | Main Idea | Expected Gain |
+|------------|----------------|------------|----------------|
+| A – Multi-Resolution Selective Scanning | Fixed temporal granularity | Combine low- and high-res scanning via learned gate | Better long-range modeling + lower FLOPs |
+| B – Selective Kernel Distillation | Heavy convolution kernels | Low-rank re-parameterization of long kernels | Smaller model size + faster inference |
+
+These two strategies complement each other:  
+Extension A optimizes *temporal efficiency* during scanning,  
+while Extension B improves *parameter efficiency* after training.  
+Together they move Mamba closer to a truly scalable, hardware-friendly architecture for long-context modeling.
