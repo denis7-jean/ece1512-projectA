@@ -178,3 +178,34 @@ These two strategies complement each other:
 Extension A optimizes *temporal efficiency* during scanning,  
 while Extension B improves *parameter efficiency* after training.  
 Together they move Mamba closer to a truly scalable, hardware-friendly architecture for long-context modeling.
+## 6. Experiment on Extension A — Multi-Resolution Selective Scanning
+
+### 6.1 Objective  
+The goal of this experiment is to evaluate whether the proposed **Multi-Resolution Selective Scanning** (MRSS) design can reduce runtime and memory cost without significantly affecting representation quality.  
+Since this work focuses on efficiency rather than accuracy, we perform a **toy profiling experiment** using synthetic sequences.
+
+---
+
+### 6.2 Experimental Setup  
+
+| Parameter | Description | Values |
+|------------|--------------|---------|
+| **Input** | Dummy sequence tensor x ∈ ℝ^(B×T×D) | B = 8 (batch), T = 8192 (tokens), D = 512 (dim) |
+| **Platform** | Google Colab (T4 GPU / 16 GB RAM) | PyTorch 2.x FP32 |
+| **Variants** | Baseline (Mamba full-res) vs MRSS with r = 2, r = 4 | Down-sampling factors |
+| **Metrics** | Latency (ms), Throughput (seqs/s), Peak Memory (MiB) | Averaged over 10 runs |
+
+Pseudo-implementation (simplified):
+
+```python
+x = torch.randn(B, T, D).cuda()
+def selective_scan_stub(x): 
+    return torch.relu(torch.nn.functional.linear(x, torch.randn(D, D).cuda()))
+
+def run(r=1):
+    x_low = x[:, ::r, :]
+    y_low = selective_scan_stub(x_low)
+    y_high = selective_scan_stub(x)
+    gate = torch.sigmoid(torch.randn(B, T, D).cuda())
+    y = gate * torch.nn.functional.interpolate(
+        y_low.transpose(1,2), size=T, mode='nearest').transpose(1,2) + (1-gate)*y_high
