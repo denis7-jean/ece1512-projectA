@@ -252,3 +252,33 @@ However, the dual-path structure introduces additional parameters and memory ove
 Future work may incorporate **dynamic resolution selection** or **sparse gating** to further reduce compute while maintaining representation fidelity.  
 
 Overall, these results confirm that **multi-resolution selective scanning** can improve the runtime efficiency of State Space Models, offering a practical path toward scalable, hardware-friendly architectures for long-context modeling.
+## 7. Conclusion & Future Work
+
+### 7.1 Summary of Findings
+In this part of Project A, we studied the efficiency and scalability of **State Space Models (SSMs)**, focusing on the evolution from **S4 → Mamba (2024)**.  
+We analyzed how Mamba improves upon the traditional SSM family through **selective scanning** and **input-dependent dynamics**, providing sub-quadratic inference while maintaining long-context modeling capability.
+
+Building on these insights, we proposed **Extension A — Multi-Resolution Selective Scanning (MRSS)**, which introduces hierarchical temporal processing to reduce redundant computation across smooth regions of long sequences.
+
+Through our proxy-based efficiency experiment, we observed:
+- MRSS achieves up to **27% lower latency** and **reduced FLOPs** at moderate downsampling rates (r ≤ 4);  
+- The design trades **slightly higher memory** for improved throughput and runtime efficiency;  
+- These findings confirm that **hierarchical and selective temporal processing** can enhance scalability for long-context sequence models.
+
+---
+
+### 7.2 Limitations
+While MRSS demonstrates promising efficiency gains, it introduces several practical constraints:
+1. **Dual-branch overhead:** The concurrent high/low-resolution paths increase activation memory.  
+2. **Static downsampling factor:** The current version uses a fixed r, which may not adapt well to sequences with mixed temporal dynamics.  
+3. **Proxy approximation:** Our experiment uses a simplified computational proxy instead of the full Mamba kernel, meaning results are indicative rather than absolute.
+
+---
+
+### 7.3 Future Directions
+To further extend this work, several promising directions can be explored:
+- **Dynamic Resolution Selection:** Learn to adjust downsampling factors adaptively per sequence or token based on signal complexity.  
+- **Kernel Compression (Extension B):** Apply low-rank re-parameterization or structured pruning to reduce memory footprint of long 1D convolutions.  
+- **Integration with Vision-Language Models (Part B):** Investigate whether MRSS or kernel compression can accelerate multi-modal architectures such as CLIP or Flamingo-style VLMs.
+
+These directions aim to bridge **algorithmic efficiency** and **practical deployability**, aligning with the broader goal of building next-generation, attention-free sequence models that are both computationally and memory efficient.
