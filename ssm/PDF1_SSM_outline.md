@@ -282,3 +282,15 @@ To further extend this work, several promising directions can be explored:
 - **Integration with Vision-Language Models (Part B):** Investigate whether MRSS or kernel compression can accelerate multi-modal architectures such as CLIP or Flamingo-style VLMs.
 
 These directions aim to bridge **algorithmic efficiency** and **practical deployability**, aligning with the broader goal of building next-generation, attention-free sequence models that are both computationally and memory efficient.
+
+---
+
+### Reproducibility Checklist
+- [x] Source code and notebook uploaded to GitHub  
+- [x] Results CSV and figures included in /ssm/results  
+- [x] Random seed fixed for experiment reproducibility  
+- [x] All dependencies: PyTorch 2.x, CUDA 11.8, Colab T4 GPU  
+
+**Repository:** [https://github.com/denis7-jean/ece1512-projectA.git](https://github.com/denis7-jean/ece1512-projectA.git)
+---
+
