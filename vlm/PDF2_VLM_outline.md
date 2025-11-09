@@ -46,3 +46,38 @@ This redundancy leads to:
 
 Our goal is to design an **Extension A: Vision Token Pruning** mechanism that removes or merges less informative tokens before attention computation,  
 reducing latency and FLOPs without degrading alignment accuracy.
+## 4. Proposed Extensions
+
+To mitigate the computational bottleneck in CLIP’s visual encoder while preserving its alignment capability, we propose two complementary efficiency extensions:  
+**Extension A – Vision Token Pruning (VTP)** and **Extension B – Cross-Modal Low-Rank Fusion (LoRA)**.  
+Both are designed to be modular and easily integrated into pretrained CLIP models without retraining from scratch.
+
+---
+
+### 4.1 Extension A – Vision Token Pruning (VTP)
+
+#### Motivation
+The Vision Transformer (ViT) in CLIP processes all visual tokens equally, even those corresponding to redundant or low-information regions such as background or uniform textures.  
+This results in quadratic attention cost O(n²).  
+Inspired by recent token-reduction methods, we propose **Vision Token Pruning (VTP)**, which selectively removes less informative patches before each attention block.
+
+#### Method
+We assign each token an **importance score** based on its spatial activation magnitude, then retain only the top-p% tokens.  
+Dropped tokens are replaced by a learnable “summary token” to preserve global context.  
+This method requires no retraining of CLIP’s backbone and can be applied dynamically at inference time.
+
+#### Pseudocode (Simplified)
+```python
+# x: patch embeddings [B, N, D]
+# p: keep ratio (e.g., 0.7 means prune 30%)
+scores = x.norm(dim=-1)                # token importance
+keep_k = int(p * x.size(1))            # number of tokens to keep
+top_idx = scores.topk(keep_k, dim=1).indices
+x_pruned = x.gather(1, top_idx.unsqueeze(-1).expand(-1, -1, x.size(-1)))
+
+# optional: add summary token for dropped regions
+summary = x.mean(dim=1, keepdim=True)
+x_pruned = torch.cat([summary, x_pruned], dim=1)
+
+# feed pruned tokens into ViT encoder
+y = vision_transformer(x_pruned)
