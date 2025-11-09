@@ -1,44 +1,48 @@
 # PDF2 — Vision-Language Model Efficiency (CLIP Case Study)
 
 ## 1. Introduction & Motivation
-- Vision-Language Models (VLMs) combine image encoders and text encoders for cross-modal alignment.  
-- Despite strong performance, most VLMs inherit the quadratic cost of Transformers in the visual backbone (ViT).  
-- This section explores efficiency bottlenecks in CLIP and proposes methods to reduce redundant visual tokens while preserving accuracy.
+Vision-Language Models (VLMs) such as CLIP (Radford et al., 2021) combine visual and textual modalities into a shared embedding space.  
+By aligning image and text representations through contrastive learning, they enable zero-shot recognition, retrieval, and cross-modal understanding.  
+
+However, the visual backbone in most VLMs — typically a Vision Transformer (ViT) — suffers from **quadratic complexity O(n²)** with respect to the number of visual tokens.  
+This high cost limits inference speed and memory efficiency, especially when processing high-resolution images or large-scale datasets.  
+
+This section explores the computational bottlenecks in CLIP’s visual encoder and proposes lightweight mechanisms to improve **runtime and memory efficiency** while maintaining cross-modal performance.
+
+---
 
 ## 2. Background & Related Work
-- CLIP architecture overview (image encoder + text encoder + contrastive objective).  
-- Transformer quadratic complexity in Vision Encoders.  
-- Token Pruning and Merging approaches (TOME, Dynamic ViT, EVA-CLIP, MobileCLIP).  
-- Summary of efficiency trade-offs in recent VLM optimizations.
+### 2.1 CLIP Architecture Overview
+CLIP consists of two main components:
+- **Image Encoder:** a ViT-B/16 model that tokenizes the image into 16×16-patch embeddings and applies multi-head self-attention.  
+- **Text Encoder:** a Transformer that encodes textual descriptions.  
+Both encoders are trained jointly with a contrastive loss to align visual and textual features.
+
+### 2.2 Transformer Complexity in Vision Encoders
+The self-attention mechanism in ViTs computes pairwise relations among all tokens, leading to O(n²) runtime and memory cost.  
+As the number of image patches increases with resolution, the computational burden grows rapidly, making ViT-based VLMs inefficient for deployment.
+
+### 2.3 Efficiency-Oriented Approaches
+Recent works attempt to reduce computation through:
+- **Token Pruning:** dynamically discarding redundant patches (e.g., Dynamic ViT 2021, TOME 2023).  
+- **Token Merging:** combining spatially similar tokens to shorten sequence length during inference.  
+- **Lightweight CLIP variants:** EVA-CLIP (2023), MobileCLIP (2023) use distillation and weight sharing to achieve compactness.  
+These studies show that visual tokens often contain redundant information that can be safely compressed.
+
+### 2.4 Summary
+Although these approaches improve computational efficiency, they often rely on complex dynamic controllers or retraining pipelines.  
+A simpler, modular strategy for token reduction that preserves compatibility with pretrained CLIP remains under-explored.
+
+---
 
 ## 3. Problem Statement & Motivation
-- CLIP ViT encoders process ~50×50 = 2500 tokens per image.  
-- Many tokens represent redundant spatial information, causing unnecessary attention computation.  
-- Goal: reduce visual token count without hurting alignment accuracy.
+CLIP’s ViT encoder processes roughly **50 × 50 = 2,500 visual tokens per image**, each undergoing multi-head attention at every layer.  
+Empirically, many of these tokens represent low-importance regions (e.g., backgrounds or repetitive textures), yet they still participate in all attention computations.
 
-## 4. Proposed Extensions
-### 4.1 Extension A — Vision Token Pruning
-- Apply token importance scoring (SALIENCY / variance / attention entropy).  
-- Discard or merge least-informative tokens before ViT layers.  
-- Evaluate speed vs accuracy trade-off.
+This redundancy leads to:
+1. **Quadratic runtime growth** with image resolution.  
+2. **High GPU memory usage** due to attention maps.  
+3. **Inefficient deployment** on edge or low-latency systems.
 
-### 4.2 Extension B — Cross-Modal Low-Rank Fusion
-- Replace full attention in text–vision fusion with low-rank projection (LoRA).  
-- Compress interaction parameters while maintaining semantic alignment.
-
-## 5. Experiment Setup (CLIP Proxy)
-- Use Hugging Face `openai/clip-vit-base-patch16`.  
-- Measure forward time and GPU memory for baseline vs pruned CLIP.  
-- Dataset: CIFAR-10 subset or synthetic images (64×64).  
-- Metrics: Latency, Throughput, Memory.
-
-## 6. Results & Analysis
-- Table and bar charts comparing baseline vs Extension A.  
-- Observe ~30–40% latency reduction with minimal accuracy drop.  
-- Discuss scaling behavior vs sequence length.
-
-## 7. Conclusion & Future Work
-- Token pruning effectively reduces VLM inference cost.  
-- Next steps: dynamic token budget per image, integration with LoRA for cross-modal compression.  
-- Connection to Part A: both address efficiency of attention-free or token-reduced models.
-
+Our goal is to design an **Extension A: Vision Token Pruning** mechanism that removes or merges less informative tokens before attention computation,  
+reducing latency and FLOPs without degrading alignment accuracy.
