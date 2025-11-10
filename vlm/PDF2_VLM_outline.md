@@ -250,17 +250,6 @@ Profiling results for the CLIP (ViT-B/16) Vision Token Pruning (VTP) experiment:
 ![Memory Trend](clip_vtp_memory.png)  
 *Figure 2 – Peak memory usage also declines gradually with pruning.*
 
-<p align="center">
-  <img src="vlm/results/clip_vtp_latency.png" width="500"><br>
-  <em>Figure 1 – Latency decreases monotonically as fewer visual tokens are kept.</em>
-</p>
-
-<p align="center">
-  <img src="vlm/results/clip_vtp_memory.png" width="500"><br>
-  <em>Figure 2 – Peak memory usage also declines gradually with pruning.</em>
-</p>
----
-
 ### 6.3 Analysis
 The latest profiling confirms that Vision Token Pruning (VTP) substantially improves CLIP’s visual-encoder efficiency:
 
