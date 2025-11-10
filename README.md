@@ -60,7 +60,7 @@ pip install transformers==4.44.2 timm==1.0.9 matplotlib==3.9
 
 ### Part B – CLIP (VLM)
 
-1. Open [`vlm/VLM_ECE1512.ipynb`](vlm/vlm_efficiency_experiment.ipynb) in Colab.
+1. Open [`vlm/vlm_efficiency_experiment.ipynb`](vlm/vlm_efficiency_experiment.ipynb) in Colab.
 2. Run cells sequentially (Cell 1 → 4).
 3. Outputs (`clip_vtp_results.csv`, `clip_vtp_latency.png`, `clip_vtp_memory.png`) are saved to `vlm/results/`.
 
