@@ -46,6 +46,7 @@ This redundancy leads to:
 
 Our goal is to design an **Extension A: Vision Token Pruning** mechanism that removes or merges less informative tokens before attention computation,  
 reducing latency and FLOPs without degrading alignment accuracy.
+
 ## 4. Proposed Extensions
 
 To mitigate the computational bottleneck in CLIP’s visual encoder while preserving its alignment capability, we propose two complementary efficiency extensions:  
@@ -81,3 +82,62 @@ x_pruned = torch.cat([summary, x_pruned], dim=1)
 
 # feed pruned tokens into ViT encoder
 y = vision_transformer(x_pruned)
+````
+
+#### Expected Benefits
+
+* **Latency ↓ and Memory ↓** due to shorter token sequences.
+* **Plug-and-Play:** works with pretrained CLIP checkpoints.
+* **Minimal Accuracy Loss** if pruning ratio ≤ 30%.
+
+This extension directly targets the quadratic bottleneck of CLIP’s visual encoder.
+
+---
+
+### 4.2 Extension B – Cross-Modal Low-Rank Fusion (LoRA)
+
+#### Motivation
+
+In CLIP-style VLMs, visual and textual embeddings are projected into a joint space via high-dimensional linear layers.
+These cross-modal projections consume significant parameters and GPU memory.
+To address this, we introduce a **low-rank re-parameterization** of the fusion layers.
+
+#### Method
+
+We decompose each fusion weight ( W \in \mathbb{R}^{d \times d} ) into two smaller matrices ( A \in \mathbb{R}^{d \times r} ) and ( B \in \mathbb{R}^{r \times d} ), where ( r \ll d ):
+( W \approx A \times B ).
+During fine-tuning, only ( A ) and ( B ) are updated while ( W ) remains frozen.
+This effectively reduces trainable parameters from ( O(d^2) ) to ( O(2dr) ).
+
+#### Pseudocode (Simplified)
+
+```python
+# z_v: visual embedding, z_t: text embedding
+# replace high-d projection with low-rank adapters
+A_v, B_v = nn.Linear(d, r), nn.Linear(r, d)
+A_t, B_t = nn.Linear(d, r), nn.Linear(r, d)
+
+z_v_fused = B_v(A_v(z_v))
+z_t_fused = B_t(A_t(z_t))
+similarity = cosine_similarity(z_v_fused, z_t_fused)
+```
+
+#### Expected Benefits
+
+* **Parameter Efficiency ↑** (especially for fine-tuning).
+* **Improved Memory Footprint ↓** during training.
+* **Maintains Alignment Performance** due to low-rank adaptation.
+
+Although Extension B is not empirically evaluated here, it represents a practical future direction for efficient multi-modal fine-tuning.
+
+---
+
+### 4.3 Summary of Extensions
+
+| Extension                          | Target Component                  | Key Idea                                      | Expected Effect                            |
+| ---------------------------------- | --------------------------------- | --------------------------------------------- | ------------------------------------------ |
+| **A – Vision Token Pruning (VTP)** | CLIP Visual Encoder (ViT)         | Drop low-importance tokens before attention   | Latency ↓ , Memory ↓ , Minor Accuracy Loss |
+| **B – Cross-Modal LoRA Fusion**    | CLIP Fusion Layer (Text ↔ Vision) | Low-rank factorization of projection matrices | Params ↓ , Fine-tuning Efficiency ↑        |
+
+Together, these two strategies form a unified approach to **VLM efficiency optimization** —
+Extension A addresses spatial redundancy in images, while Extension B reduces redundancy in cross-modal projection.
