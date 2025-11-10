@@ -141,3 +141,87 @@ Although Extension B is not empirically evaluated here, it represents a practica
 
 Together, these two strategies form a unified approach to **VLM efficiency optimization** —
 Extension A addresses spatial redundancy in images, while Extension B reduces redundancy in cross-modal projection.
+
+## 5. Experiment Setup
+
+### 5.1 Objective
+The purpose of this experiment is to evaluate the efficiency improvement introduced by **Extension A – Vision Token Pruning (VTP)** in CLIP’s visual encoder.  
+We measure the trade-off between **latency**, **memory**, and **accuracy** under different pruning ratios, focusing on inference-time performance rather than fine-tuning accuracy.
+
+---
+
+### 5.2 Experimental Environment
+
+| Parameter | Description | Values |
+|------------|--------------|---------|
+| **Model** | CLIP (ViT-B/16) from Hugging Face Transformers | `openai/clip-vit-base-patch16` |
+| **Dataset** | CIFAR-10 subset (1 K samples) or synthetic images | Resolution = 128×128 |
+| **Framework** | PyTorch 2.x + Hugging Face + CUDA 11.8 | Google Colab (T4 GPU / 16 GB RAM) |
+| **Variants** | Baseline (no pruning) vs VTP p = 10%, 30%, 50% | Token retention ratios |
+| **Metrics** | Latency (ms), Throughput (images/s), Peak Memory (MiB), Accuracy (%) | Averaged over 10 runs |
+
+---
+
+### 5.3 Implementation Details
+
+The experiment applies token pruning **before the ViT encoder** during inference.  
+Each image is patch-embedded, importance scores are computed by L2-norm across feature channels, and only the top-p% tokens are kept.  
+The reduced sequence is then fed into the frozen CLIP visual backbone.  
+This approach does not require retraining.
+
+#### Pseudocode (Simplified)
+```python
+import torch, clip
+from PIL import Image
+from torchvision import transforms
+
+# --- Load model ---
+model, preprocess = clip.load("ViT-B/16", device="cuda")
+
+# --- Prepare image ---
+img = preprocess(Image.open("sample.jpg")).unsqueeze(0).cuda()
+patch_embed = model.visual.conv1(img)           # [B, D, H, W]
+tokens = patch_embed.flatten(2).transpose(1,2)  # [B, N, D]
+
+# --- Token pruning ---
+def prune_tokens(x, keep_ratio=0.7):
+    scores = x.norm(dim=-1)
+    k = int(keep_ratio * x.size(1))
+    idx = scores.topk(k, dim=1).indices
+    pruned = x.gather(1, idx.unsqueeze(-1).expand(-1,-1,x.size(-1)))
+    summary = x.mean(dim=1, keepdim=True)
+    return torch.cat([summary, pruned], dim=1)
+
+tokens_pruned = prune_tokens(tokens, keep_ratio=0.7)
+output = model.visual.transformer(tokens_pruned)
+````
+
+---
+
+### 5.4 Measurement Protocol
+
+To ensure consistent evaluation, we profile each variant using the following procedure:
+
+1. **Warm-up:** 3 forward passes to stabilize GPU kernels.
+2. **Measurement:** 10 forward runs averaged for latency and throughput.
+3. **Memory tracking:** `torch.cuda.max_memory_allocated()` recorded per run.
+4. **Accuracy (optional):** Compute top-1 accuracy on 1 K CIFAR-10 subset (zero-shot).
+
+Example command structure in Colab:
+
+```python
+for p in [1.0, 0.9, 0.7, 0.5]:
+    x_pruned = prune_tokens(tokens, keep_ratio=p)
+    start = time.time(); _ = model.visual.transformer(x_pruned)
+    torch.cuda.synchronize(); print(f"Ratio={p}, Time={(time.time()-start)*1000:.2f} ms")
+```
+
+---
+
+### 5.5 Expected Outcome
+
+We expect a **monotonic reduction in latency and memory** as pruning increases (lower p → fewer tokens),
+with **minor accuracy degradation** when p ≥ 0.7.
+The results will be summarized in Section 6 with comparison tables and visualizations similar to Part A.
+
+---
