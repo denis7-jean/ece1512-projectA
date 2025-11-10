@@ -273,3 +273,37 @@ At moderate pruning (p ≥ 0.7), runtime drops notably while representational fi
 
 ### 6.5 Summary
 The experiment demonstrates that simple token-level sparsification can significantly reduce computation in CLIP’s vision encoder without architectural changes or retraining, providing a lightweight and deployable path for real-time Vision–Language Models.
+
+## 7. Conclusion & Future Work
+
+### 7.1 Summary
+In this part, we analyzed efficiency bottlenecks in Vision–Language Models (VLMs) using CLIP as a case study and proposed two complementary extensions:
+
+1. **Vision Token Pruning (VTP)** – selectively removes low-importance visual tokens to reduce attention cost.  
+2. **Cross-Modal Low-Rank Fusion (LoRA)** – decomposes projection matrices into low-rank factors for efficient fine-tuning.
+
+Empirical profiling on CLIP (ViT-B/16) demonstrated that **VTP reduced latency by ≈ 40 % and increased throughput by ≈ 75 %** when half of the tokens were retained, with only minor memory impact and negligible expected accuracy loss.  
+These findings validate the feasibility of token-level sparsification as an effective approach to mitigate the quadratic cost of transformer-based vision encoders.
+
+---
+
+### 7.2 Discussion
+- **Computation vs. Representation Trade-off** – Moderate pruning (p ≥ 0.7) yields strong efficiency gains while maintaining representational integrity.  
+- **Hardware Efficiency** – The near-linear latency drop confirms that VTP effectively alleviates the attention bottleneck, improving GPU utilization.  
+- **Scalability** – Because VTP is plug-and-play, it can be integrated into larger VLMs (EVA-CLIP, ALIGN, SigLIP) without retraining.
+
+---
+
+### 7.3 Future Directions
+Building on the current findings, several promising research directions emerge:
+
+1. **Dynamic Resolution Selection (Adaptive VTP):** Learn token-importance thresholds per image or sequence dynamically instead of using a fixed ratio.  
+2. **LoRA Fusion Integration (Extension B):** Empirically evaluate low-rank adapters for multi-modal alignment layers to quantify fine-tuning savings.  
+3. **Multi-Modal State-Space Models (SSM × VLM):** Combine Mamba-style recurrent scanning with visual transformers to extend context while keeping linear complexity.  
+4. **Hardware-Aware Pruning:** Investigate structured sparsity patterns that align with CUDA kernels and Tensor Core operations.
+
+---
+
+### 7.4 Closing Remark
+Together with the SSM results from Part A, this study demonstrates how **architectural efficiency + input-level sparsity** can substantially improve scalability in both sequence and multi-modal models.  
+These lightweight designs pave the way toward **next-generation, deployment-ready foundation models** that are fast, memory-efficient, and adaptable across tasks.
