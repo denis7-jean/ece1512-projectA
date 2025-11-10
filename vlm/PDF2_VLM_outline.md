@@ -244,12 +244,21 @@ Profiling results for the CLIP (ViT-B/16) Vision Token Pruning (VTP) experiment:
 ---
 
 ### 6.2 Latency and Memory Trends
-![Latency Trend](vlm/results/clip_vtp_latency.png)  
+![Latency Trend](clip_vtp_latency.png)  
 *Figure 1 – Latency decreases monotonically as fewer visual tokens are kept.*
 
-![Memory Trend](vlm/results/clip_vtp_memory.png)  
+![Memory Trend](clip_vtp_memory.png)  
 *Figure 2 – Peak memory usage also declines gradually with pruning.*
 
+<p align="center">
+  <img src="vlm/results/clip_vtp_latency.png" width="500"><br>
+  <em>Figure 1 – Latency decreases monotonically as fewer visual tokens are kept.</em>
+</p>
+
+<p align="center">
+  <img src="vlm/results/clip_vtp_memory.png" width="500"><br>
+  <em>Figure 2 – Peak memory usage also declines gradually with pruning.</em>
+</p>
 ---
 
 ### 6.3 Analysis
