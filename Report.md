@@ -12,6 +12,13 @@ In Part A, we study Mamba, an efficient successor to S4, and propose two extensi
 In Part B, we analyze the CLIP visual encoder as a representative VLM, identifying redundant token computations as a key bottleneck. We introduce Visual Token Pruning (VTP) to reduce attention cost by discarding low-saliency patches. Results show significant reductions in latency and memory while retaining functional performance.  
 All code, figures, and results are available in our public GitHub repository.
 
+---
+## Table of Contents
+- [Part A – Structured State Space Models (Mamba)](#part-a--structured-state-space-models-mamba)
+- [Part B – Vision-Language Models (CLIP)](#part-b--vision-language-models-clip)
+- [Appendix](#appendix)
+- [Reproducibility Checklist](#reproducibility-checklist)
+---
 
 # Part A – Structured State Space Models (Mamba)
 
