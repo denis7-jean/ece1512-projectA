@@ -619,3 +619,14 @@ These lightweight designs pave the way toward **next-generation, deployment-read
 ---
 
 # Appendix
+**Repository:** [https://github.com/denis7-jean/ece1512-projectA.git](https://github.com/denis7-jean/ece1512-projectA.git)
+
+---
+
+# Reproducibility Checklist
+- [x] All code and results included in GitHub repo  
+- [x] Figures and CSV files stored in `/ssm/results/` and `/vlm/results/`  
+- [x] Experiments reproducible on Colab (T4 GPU, 16 GB RAM)  
+- [x] Dependencies listed in README.md  
+- [x] Random seeds fixed  
+- [x] Each part (SSM/VLM) includes experiment, analysis, and conclusion
