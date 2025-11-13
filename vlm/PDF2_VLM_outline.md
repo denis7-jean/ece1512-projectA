@@ -243,14 +243,32 @@ Profiling results for the CLIP (ViT-B/16) Vision Token Pruning (VTP) experiment:
 
 ---
 
-### 6.2 Latency and Memory Trends
+### 6.2 Zero-Shot Accuracy Results
+
+To evaluate the *lossiness* introduced by VTP, we conduct a zero-shot classification test on the CIFAR-10 dataset using CLIP-style prompts.  
+We reuse the pretrained CLIP text encoder and compute image embeddings using either the baseline CLIP vision encoder or our pruned visual pathway.
+
+**Results:**
+
+| Variant | Keep Ratio | Top-1 Accuracy (%) |
+|---------|------------|--------------------|
+| **Baseline (no pruning)** | 1.00 | **88.00%** |
+| **VTP (p = 0.7)** | 0.70 | **10.00%** |
+| **VTP (p = 0.5)** | 0.50 | **10.00%** |
+
+Since CIFAR-10 has 10 classes, **10% corresponds to random guessing**.
+
+Therefore, although VTP significantly improves efficiency,  
+**our current pruning design destroys CLIP's semantic alignment capability**.
+
+---
+### 6.3 Latency and Memory Trends
 ![Latency Trend](results/clip_vtp_latency.png)  
 *Figure 1 – Latency decreases monotonically as fewer visual tokens are kept.*
 
 ![Memory Trend](results/clip_vtp_memory.png)  
 *Figure 2 – Peak memory usage also declines gradually with pruning.*
 
-### 6.3 Analysis
 The latest profiling confirms that Vision Token Pruning (VTP) substantially improves CLIP’s visual-encoder efficiency:
 
 - **Latency ↓ ≈ 43 %** (from 81 ms to 46 ms at p = 0.5).  
@@ -261,16 +279,71 @@ These improvements validate that pruning redundant visual patches can effectivel
 At moderate pruning (p ≥ 0.7), runtime drops notably while representational fidelity is expected to remain stable.
 
 ---
+### 6.4 Why Does Accuracy Collapse?
 
-### 6.4 Interpretation
-- **Computation vs. Representation Trade-off –** Balanced token retention (0.7–0.9) yields strong efficiency gains with minimal feature loss.  
-- **Hardware Observation –** Latency reduces almost linearly with sequence length, confirming attention’s O(n²) cost.  
-- **Design Insight –** Integrating VTP with LoRA or SSM modules could extend efficiency to multi-modal settings.
+Unlike the idealized expectation (“minor accuracy loss”), our VTP implementation results in **near-random performance**.  
+This is caused by three fundamental issues:
+
+#### **(1) Positional Encoding Is Broken**
+CLIP relies on *fixed absolute positional embeddings* for every patch.  
+Our method:
+
+- selects top-K tokens based on L2 norms  
+- **discards their original spatial indices**  
+- feeds them to the encoder without correct positional structure  
+
+This creates an **out-of-distribution token layout** that the pretrained encoder cannot interpret.
+
+#### **(2) CLS Token Semantics Are Disrupted**
+The CLS token in CLIP is:
+
+- pretrained jointly with attention  
+- positioned at index 0  
+- responsible for global aggregation  
+
+Our VTP replaces the CLS context with a “summary token + pruned patches,”  
+breaking the pretrained alignment pathway.
+
+#### **(3) No Fine-Tuning After Pruning**
+CLIP is extremely sensitive to input distribution.  
+Pruning tokens without fine-tuning gives the encoder inputs it was **never trained to process**,  
+leading to catastrophic accuracy failure.
 
 ---
 
-### 6.5 Summary
-The experiment demonstrates that simple token-level sparsification can significantly reduce computation in CLIP’s vision encoder without architectural changes or retraining, providing a lightweight and deployable path for real-time Vision–Language Models.
+### 6.5 Interpretation
+
+- **Efficiency improves significantly**, confirming the reduction in quadratic attention cost.  
+- **Accuracy collapses**, showing that naive heuristic-based pruning is incompatible with pretrained CLIP.  
+- This negative result is scientifically meaningful:  
+  > Aggressive token pruning **without preserving positional structure or CLS semantics** cannot maintain VLM alignment.
+
+---
+
+### 6.6 Summary
+
+The updated results show a **clear efficiency–accuracy trade-off**:
+
+- **Efficiency:**  
+  - Latency ↓ 43%  
+  - Throughput ↑ 70%  
+  - Memory ↓ 10%
+
+- **Accuracy:**  
+  - Baseline: 88%  
+  - VTP: ≈10% (random guessing)
+
+The experiment demonstrates that **token-level sparsification can reduce computation**,  
+but **naive VTP completely disrupts semantic alignment**.
+
+This motivates future directions involving:
+
+- positional-aware pruning  
+- preserving original CLS  
+- pruning only later layers  
+- light fine-tuning after pruning  
+
+to restore CLIP’s zero-shot capability while keeping its efficiency benefits.
 
 ## 7. Conclusion & Future Work
 
