@@ -269,14 +269,15 @@ Therefore, although VTP significantly improves efficiency,
 ![Memory Trend](results/clip_vtp_memory.png)  
 *Figure 2 – Peak memory usage also declines gradually with pruning.*
 
-The latest profiling confirms that Vision Token Pruning (VTP) substantially improves CLIP’s visual-encoder efficiency:
+The profiling confirms that Vision Token Pruning (VTP) substantially improves CLIP’s visual-encoder efficiency:
 
 - **Latency ↓ ≈ 43 %** (from 81 ms to 46 ms at p = 0.5).  
 - **Throughput ↑ ≈ 70 %**, indicating linear scaling with token count.  
 - **Memory ↓ ≈ 10 %**, reflecting smaller attention maps and intermediate buffers.  
 
-These improvements validate that pruning redundant visual patches can effectively alleviate the quadratic attention bottleneck in ViT.  
-At moderate pruning (p ≥ 0.7), runtime drops notably while representational fidelity is expected to remain stable.
+However, unlike the expected behavior suggested in prior token pruning research,  
+**our accuracy experiment demonstrates that naive VTP does *not* preserve semantic fidelity** in pretrained CLIP.  
+Efficiency gains are real, but they come at the cost of complete alignment failure (Section 6.4).
 
 ---
 ### 6.4 Why Does Accuracy Collapse?
@@ -353,15 +354,17 @@ In this part, we analyzed efficiency bottlenecks in Vision–Language Models (VL
 1. **Vision Token Pruning (VTP)** – selectively removes low-importance visual tokens to reduce attention cost.  
 2. **Cross-Modal Low-Rank Fusion (LoRA)** – decomposes projection matrices into low-rank factors for efficient fine-tuning.
 
-Empirical profiling on CLIP (ViT-B/16) demonstrated that **VTP reduced latency by ≈ 40 % and increased throughput by ≈ 75 %** when half of the tokens were retained, with only minor memory impact and negligible expected accuracy loss.  
-These findings validate the feasibility of token-level sparsification as an effective approach to mitigate the quadratic cost of transformer-based vision encoders.
+Empirical profiling on CLIP (ViT-B/16) demonstrated that **VTP reduced latency by ≈ 40 % and increased throughput by ≈ 75 %** when half of the tokens were retained, with minimal impact on memory.  
+
+However, **zero-shot accuracy collapsed to ~10%** under naive VTP, revealing that token pruning—when applied without positional preservation or fine-tuning—can completely break semantic alignment in pretrained CLIP.  
+This highlights an important trade-off between computational efficiency and representation integrity.
 
 ---
 
 ### 7.2 Discussion
-- **Computation vs. Representation Trade-off** – Moderate pruning (p ≥ 0.7) yields strong efficiency gains while maintaining representational integrity.  
-- **Hardware Efficiency** – The near-linear latency drop confirms that VTP effectively alleviates the attention bottleneck, improving GPU utilization.  
-- **Scalability** – Because VTP is plug-and-play, it can be integrated into larger VLMs (EVA-CLIP, ALIGN, SigLIP) without retraining.
+- **Efficiency vs. Representation Trade-off** – While VTP yields significant computational savings, our results show that naive pruning severely harms representation quality. Preserving positional embeddings and CLS semantics is essential for usable accuracy.
+- **Hardware Efficiency** – The near-linear latency drop confirms that VTP effectively alleviates the attention bottleneck, improving GPU utilization.
+- **Scalability** – With proper design (e.g., positional-aware pruning or post-pruning fine-tuning), VTP could be adapted to larger multimodal models such as EVA-CLIP, ALIGN, and SigLIP.
 
 ---
 
