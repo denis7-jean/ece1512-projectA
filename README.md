@@ -1,6 +1,4 @@
 ### Efficient Architectures for Sequence and Multimodal Modeling  
-**Author:** Dennis Lan  |  **Course:** ECE 1512 Digital Image Processing & ML for Materials  
-**Instructor:** Prof. S. Fidler  |  **TA:** R. Huang  
 **Date:** Nov 2025
 
 ---
