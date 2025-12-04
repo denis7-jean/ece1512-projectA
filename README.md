@@ -30,8 +30,9 @@ Efficiency-Arch-Project/
 │
 └── vlm/                          # Part B: Vision Token Pruning (VTP)
     ├── clip_pruning.ipynb            # Main experiment notebook (PyTorch)
-    ├── 12.3.pdf                      # Technical Presentation / Poster
     └── results/                      # Visualization of Latency vs. Accuracy
+        └── poster.pdf                      # Technical Presentation / Poster
+
 ```
 
 -----
