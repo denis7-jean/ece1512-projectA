@@ -1,5 +1,3 @@
-# ECE 1512 – Project A (2025 Fall)
-
 ### Efficient Architectures for Sequence and Multimodal Modeling  
 **Author:** Dennis Lan  |  **Course:** ECE 1512 Digital Image Processing & ML for Materials  
 **Instructor:** Prof. S. Fidler  |  **TA:** R. Huang  
